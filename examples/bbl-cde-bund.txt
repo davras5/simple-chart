@@ -1,0 +1,109 @@
+erDiagram
+    Projekt ||--|{ Grundstück : enthält
+    Grundstück ||--|{ Gebäude : enthält
+    Gebäude ||--|{ Geschoss : enthält
+    Geschoss ||--|{ Raum : enthält
+    Raum }o--o{ Zone : "gehört zu"
+    Gebäude ||--o{ System : enthält
+    System ||--o{ Bauteil : enthält
+    Bauteil }o--|| Raum : "befindet sich in"
+    Projekt {
+        Projekt Name, IfcLabel, PK
+        Projekt GUID, IfcGUID
+        Projekt Beschreibung, IfcText
+        Phase, IfcLabel, , "z.B. 5 Realisierung"
+    }
+    Grundstück {
+        Grundstück ID, IfcLabel, PK, "z.B. 2564/01"
+        Grundstück GUID, IfcGUID
+        Wirtschaftseinheit ID, IfcIdentifier, , "z.B. 2564"
+        Bezeichnung, IfcLabel, , "z.B. Sammlungszentrum"
+        Ort, IfcLabel
+        Politische Gemeinde, IfcLabel
+        Postleitzahl, IfcLabel
+        Kanton, IfcLabel
+        Land, IfcLabel
+        Katasternummer, IfcIdentifier
+        GSF Grundstücksfläche [m²], IfcLabel
+    }
+    Gebäude {
+        Gebäude ID, IfcLabel, PK, "WE/Objekt Nr. z.B. 2564/AB"
+        Gebäude GUID, IfcGUID
+        Objekt Nr., IfcIdentifier, , "z.B. AB"
+        Bezeichnung, IfcText, , "Rufname des Gebäudes"
+        Objekttyp, IfcIdentifier, , "Katalog 02_Objekttypen"
+        Baujahr, IfcLabel
+        Gefährdungsstufe, Enum, , "1, 2, 3"
+    }
+    Geschoss {
+        Geschoss ID, IfcLabel, PK, "z.B. 01"
+        Geschoss GUID, IfcGUID
+        Geschossbezeichnung, IfcText, , "Katalog 05_Geschosstyp"
+        Gebäude ID, IfcLabel, FK
+        Geschosshöhe [m], Q_LENGTH
+    }
+    Raum {
+        Raum GUID, IfcGUID, PK
+        Raumnummer, IfcLabel, , "z.B. 01.008"
+        Raumbezeichnung, IfcLabel, , "z.B. Büro Leitung"
+        Raumbeschreibung, IfcText
+        Raum Typ DIN 277, IfcLabel, , "z.B. HNF 1.1 Wohnräume"
+        Lage Raum, IfcBoolean, , "Innen / Aussen"
+        Raumfläche Soll [m²], IfcArea
+        Raumfläche brutto [m²], Q_AREA
+        Raumfläche netto [m²], Q_AREA
+        Raumhöhe Soll [m], IfcLength
+        Raumhöhe brutto [m], IfcLength
+        Raumhöhe netto [m], Q_LENGTH
+        Flächenlast [kN/m²], IfcInteger
+        Punktlast [kN], IfcInteger
+        Belegung, IfcCount, , "max. Personen"
+        Fluchtweg, IfcBoolean
+        Barrierefreiheit, IfcBoolean
+        Luftmengen [m³/h], IfcInteger
+        Raumklima Temperatur [°C], IfcInteger
+        Raumklima Luftfeuchtigkeit [%], IfcInteger
+        Bodenbelag, IfcLabel, , "Katalog 07_Bodenbelagtyp"
+    }
+    Zone {
+        Zone GUID, IfcGUID, PK
+        Zone ID, IfcLabel, , "z.B. SB0"
+        Zonen Name, IfcLabel, , "z.B. Öffentliche Zone"
+        Zonen Typ ID, IfcLabel, , "Katalog 06_Zonentypen"
+    }
+    System {
+        Anlage ID, IfcGUID, PK
+        Bezeichnung, IfcLabel, , "z.B. Brandmeldeanlage 1"
+        Anlage Nr., IfcText, , "BTA-Kennzeichnung"
+        Bezeichnung Langtext, IfcLabel
+        Anlageart, IfcLabel, , "z.B. Brandmeldeanlage"
+        eBKP-H Code, IfcLabel
+        Fachbereich, IfcLabel, , "z.B. Brandschutz"
+        Lieferant, IfcLabel
+        Inbetriebnahme, IfcDate
+        Garantiestartdatum, IfcDate
+        Modell Typ, IfcLabel
+        Servicefirma, IfcLabel
+        Servicevertrag, IfcLabel
+        Nutzungsende erwartet, IfcInteger, , "Jahre"
+        Wartungspflicht, IfcBoolean
+        Wartungsintervall, IfcInteger, , "Jahre"
+        Inspektionspflicht, IfcBoolean
+        Prüffrist, IfcInteger, , "Jahre"
+    }
+    Bauteil {
+        Bauteiltyp GUID, IfcGUID, PK
+        Bezeichnung, IfcLabel, , "Code z.B. F01_P001"
+        Bauteil ID, IfcLabel, , "z.B. NNNN_AAX_F01_P001"
+        Beschreibung, IfcLabel, , "z.B. Brandmelder 1"
+        Bauteilkategorie Code, IfcLabel, , "eBKP-H z.B. D04.01"
+        Bauteilkategorie Bezeichnung, IfcLabel
+        Bauteilart, IfcLabel, , "z.B. Brandmelder"
+        Fachbereich, IfcLabel
+        Hersteller, IfcLabel
+        Artikelnummer, IfcLabel
+        Modell Typ, IfcLabel
+        Kosten Ersatz, IfcLabel, , "CHF"
+        Inbetriebnahme, IfcDate
+        Garantie Start Datum, IfcDate
+    }

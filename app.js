@@ -12,16 +12,39 @@ const processedWrapper = document.getElementById("processed-wrapper");
 const processedCode = document.getElementById("processed-code");
 const showProcessed = document.getElementById("show-processed");
 const templateSelect = document.getElementById("templates");
+const zoomLevel = document.getElementById("zoom-level");
+let currentZoom = 100;
+let currentTheme = "default";
+let currentLayout = "dagre";
+let elkLoaded = false;
 
 // ─── Mermaid init ─────────────────────────────────────────────────────────────
 
-mermaid.initialize({
-    startOnLoad: false,
-    theme: "default",
-    securityLevel: "loose",
-    er: { useMaxWidth: true },
-    flowchart: { useMaxWidth: true, htmlLabels: true },
-});
+function initMermaid(erDirection) {
+    mermaid.initialize({
+        startOnLoad: false,
+        theme: currentTheme,
+        layout: currentLayout,
+        securityLevel: "loose",
+        er: { useMaxWidth: false, layoutDirection: erDirection || "TB" },
+        flowchart: { useMaxWidth: false, htmlLabels: true },
+    });
+}
+
+async function loadElkLayout() {
+    if (elkLoaded) return true;
+    try {
+        const module = await import("https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs");
+        mermaid.registerLayoutLoaders(module.default);
+        elkLoaded = true;
+        return true;
+    } catch (e) {
+        console.error("Failed to load ELK layout:", e);
+        return false;
+    }
+}
+
+initMermaid();
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 
@@ -124,8 +147,13 @@ function sanitizeName(name) {
 // Track used IDs to avoid collisions within one render pass
 let usedIds;
 
-function getUniqueId(displayName) {
-    const base = sanitizeName(displayName);
+function getUniqueId(displayName, minLength) {
+    let base = sanitizeName(displayName);
+    // Pad the ID so Mermaid allocates enough column width for the
+    // display name that will replace it during post-processing.
+    if (minLength && base.length < minLength) {
+        base += "_".repeat(minLength - base.length);
+    }
     let id = base;
     let n = 2;
     while (usedIds.has(id) && nameMapping[id] !== displayName) {
@@ -174,6 +202,7 @@ function preprocessER(code) {
     const lines = code.split("\n");
     const result = [];
     let inEntity = false;
+    let erDirection = null;
 
     // relationship line regex — captures entity names around the cardinality
     // pattern (e.g.  ||--o{ )
@@ -184,8 +213,23 @@ function preprocessER(code) {
         const trimmed = line.trim();
 
         // blank / comment / directive
-        if (trimmed === "" || trimmed.startsWith("%%") || trimmed === "erDiagram") {
+        if (trimmed === "" || trimmed.startsWith("%%")) {
             result.push(line);
+            continue;
+        }
+
+        // erDiagram line (with optional shorthand direction, e.g. "erDiagram LR")
+        const erDeclMatch = trimmed.match(/^erDiagram(\s+(TD|TB|BT|LR|RL))?$/i);
+        if (erDeclMatch) {
+            if (erDeclMatch[2]) erDirection = erDeclMatch[2].toUpperCase();
+            result.push("erDiagram");
+            continue;
+        }
+
+        // "direction XX" line — extract and skip
+        const dirMatch = trimmed.match(/^direction\s+(TD|TB|BT|LR|RL)$/i);
+        if (dirMatch) {
+            erDirection = dirMatch[1].toUpperCase();
             continue;
         }
 
@@ -224,7 +268,7 @@ function preprocessER(code) {
         result.push(line);
     }
 
-    return result.join("\n");
+    return { code: result.join("\n"), direction: erDirection };
 }
 
 function preprocessERAttribute(line) {
@@ -258,10 +302,11 @@ function preprocessERAttribute(line) {
         comment = parts[2].trim();
     }
 
-    const safeName = getUniqueId(displayName);
+    const safeName = getUniqueId(displayName, displayName.length + 2);
 
-    // Rebuild as Mermaid attribute:  type safeName [PK|FK|UK] ["comment"]
-    let out = `${indent}${type} ${safeName}`;
+    // Rebuild as Mermaid attribute:  safeName type [PK|FK|UK] ["comment"]
+    // (swapped so the display name renders in the first column)
+    let out = `${indent}${safeName} ${type}`;
     if (key) out += ` ${key}`;
     if (comment) {
         const c = comment.replace(/^"|"$/g, "").trim();
@@ -463,11 +508,9 @@ function postProcessSVG(container) {
     );
     if (entries.length === 0) return;
 
-    const elements = container.querySelectorAll("text, tspan, span, p, foreignObject");
-    elements.forEach((el) => {
-        // For elements with child nodes, only process leaf text
-        if (el.children && el.children.length > 0 && el.tagName !== "foreignObject") return;
-
+    // Native SVG text elements — only process leaf nodes (no children)
+    container.querySelectorAll("text, tspan").forEach((el) => {
+        if (el.children && el.children.length > 0) return;
         for (const [sanitized, display] of entries) {
             if (el.textContent && el.textContent.includes(sanitized)) {
                 el.textContent = el.textContent.replaceAll(sanitized, display);
@@ -475,13 +518,21 @@ function postProcessSVG(container) {
         }
     });
 
-    // Also handle foreignObject content which Mermaid uses for HTML labels
+    // foreignObject HTML content — use innerHTML to preserve DOM structure
     container.querySelectorAll("foreignObject span, foreignObject p, foreignObject div").forEach((el) => {
         for (const [sanitized, display] of entries) {
             if (el.innerHTML && el.innerHTML.includes(sanitized)) {
                 el.innerHTML = el.innerHTML.replaceAll(sanitized, display);
             }
         }
+    });
+
+    // Prevent text wrapping in foreignObject cells after name replacement
+    container.querySelectorAll("foreignObject").forEach((fo) => {
+        fo.style.overflow = "visible";
+        fo.querySelectorAll("div, span, p").forEach((child) => {
+            child.style.whiteSpace = "nowrap";
+        });
     });
 }
 
@@ -496,11 +547,14 @@ async function render() {
     }
 
     let processed;
-    const isER = /^\s*erDiagram/i.test(raw);
+    const isER = /\berDiagram\b/i.test(raw);
     if (isER) {
-        processed = preprocessER(raw);
+        const result = preprocessER(raw);
+        processed = result.code;
+        initMermaid(result.direction);
     } else {
         processed = preprocessFlowchart(raw);
+        initMermaid();
     }
 
     processedCode.textContent = processed;
@@ -510,6 +564,7 @@ async function render() {
         const { svg } = await mermaid.render(id, processed);
         preview.innerHTML = svg;
         postProcessSVG(preview.querySelector("svg"));
+        fitToView();
     } catch (err) {
         const msg = (err.message || String(err))
             .replace(/</g, "&lt;")
@@ -531,6 +586,182 @@ templateSelect.addEventListener("change", () => {
         editor.value = TEMPLATES[key];
         render();
     }
+});
+
+// ─── Dropdown menus ─────────────────────────────────────────────────────────
+
+// Toggle dropdown open/close on trigger click
+document.querySelectorAll(".tb-dropdown-trigger").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const menu = btn.nextElementSibling;
+        const wasOpen = menu.classList.contains("open");
+        // Close all dropdowns first
+        document.querySelectorAll(".tb-dropdown-menu").forEach((m) => m.classList.remove("open"));
+        if (!wasOpen) menu.classList.add("open");
+    });
+});
+
+// Close dropdowns when clicking outside
+document.addEventListener("click", () => {
+    document.querySelectorAll(".tb-dropdown-menu").forEach((m) => m.classList.remove("open"));
+});
+
+// Direction menu — modifies editor text directly
+document.querySelectorAll("#direction-menu button[data-value]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const dir = btn.dataset.value;
+        document.querySelectorAll("#direction-menu button[data-value]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyDirectionToEditor(dir);
+        render();
+    });
+});
+
+function applyDirectionToEditor(dir) {
+    const code = editor.value;
+
+    if (/\berDiagram\b/i.test(code)) {
+        // ER diagram: use inline shorthand "erDiagram LR"
+        // Also clean any stale "direction XX" lines the user may have typed
+        let updated = code.replace(
+            /^\s*direction\s+(TD|TB|BT|LR|RL)\s*\n?/im,
+            ``
+        );
+
+        if (dir) {
+            updated = updated.replace(
+                /^(\s*erDiagram)\b(\s+(TD|TB|BT|LR|RL))?/im,
+                `$1 ${dir}`
+            );
+        } else {
+            // "Auto" — remove direction from erDiagram line
+            updated = updated.replace(
+                /^(\s*erDiagram)\s+(TD|TB|BT|LR|RL)/im,
+                `$1`
+            );
+        }
+
+        editor.value = updated;
+        return;
+    }
+
+    // Flowchart: replace direction on the flowchart/graph line
+    if (dir) {
+        editor.value = code.replace(
+            /^(\s*(?:flowchart|graph))\s+(TD|TB|BT|LR|RL)/im,
+            `$1 ${dir}`
+        );
+    }
+}
+
+// Layout menu
+document.querySelectorAll("#layout-menu button[data-value]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+        const layout = btn.dataset.value;
+        document.querySelectorAll("#layout-menu button[data-value]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        if (layout === "elk") await loadElkLayout();
+        currentLayout = layout;
+        render();
+    });
+});
+
+// Theme menu
+document.querySelectorAll("#theme-menu button[data-value]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        currentTheme = btn.dataset.value;
+        document.querySelectorAll("#theme-menu button[data-value]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        render();
+    });
+});
+
+// ─── Infinite canvas: zoom + pan ─────────────────────────────────────────────
+
+let panX = 0;
+let panY = 0;
+
+function applyTransform() {
+    const svg = preview.querySelector("svg");
+    if (!svg) return;
+    const s = currentZoom / 100;
+    svg.style.transform = `translate(${panX}px, ${panY}px) scale(${s})`;
+    svg.style.transformOrigin = "0 0";
+    zoomLevel.textContent = Math.round(currentZoom) + "%";
+}
+
+function fitToView() {
+    const svg = preview.querySelector("svg");
+    if (!svg) return;
+    const vw = preview.clientWidth;
+    const vh = preview.clientHeight;
+    const sw = svg.width.baseVal.value || svg.getBBox().width;
+    const sh = svg.height.baseVal.value || svg.getBBox().height;
+    if (!sw || !sh) return;
+    const padding = 0.9;
+    const scale = Math.min((vw / sw) * padding, (vh / sh) * padding, 3);
+    currentZoom = scale * 100;
+    panX = (vw - sw * scale) / 2;
+    panY = (vh - sh * scale) / 2;
+    applyTransform();
+}
+
+function zoomBy(delta, cx, cy) {
+    const oldZoom = currentZoom;
+    currentZoom = Math.min(500, Math.max(10, currentZoom + delta));
+    const factor = currentZoom / oldZoom;
+    panX = cx - (cx - panX) * factor;
+    panY = cy - (cy - panY) * factor;
+    applyTransform();
+}
+
+document.getElementById("zoom-in").addEventListener("click", () => {
+    const rect = preview.getBoundingClientRect();
+    zoomBy(25, rect.width / 2, rect.height / 2);
+});
+
+document.getElementById("zoom-out").addEventListener("click", () => {
+    const rect = preview.getBoundingClientRect();
+    zoomBy(-25, rect.width / 2, rect.height / 2);
+});
+
+document.getElementById("zoom-reset").addEventListener("click", () => {
+    fitToView();
+});
+
+// Scroll to zoom toward cursor
+preview.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = preview.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const delta = e.deltaY < 0 ? 10 : -10;
+    zoomBy(delta, cx, cy);
+}, { passive: false });
+
+// ─── Pan (always active) ────────────────────────────────────────────────────
+
+preview.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    preview.classList.add("panning");
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startPanX = panX;
+    const startPanY = panY;
+
+    const onMove = (ev) => {
+        panX = startPanX + (ev.clientX - startX);
+        panY = startPanY + (ev.clientY - startY);
+        applyTransform();
+    };
+    const onUp = () => {
+        preview.classList.remove("panning");
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
 });
 
 // ─── Show processed toggle ───────────────────────────────────────────────────
@@ -555,10 +786,23 @@ editor.addEventListener("keydown", (e) => {
     }
 });
 
+// ─── Export helpers ───────────────────────────────────────────────────────────
+
+function getCleanSvg() {
+    const svg = preview.querySelector("svg");
+    if (!svg) return null;
+    const clone = svg.cloneNode(true);
+    // Strip pan/zoom transforms so the export is clean
+    clone.style.transform = "";
+    clone.style.transformOrigin = "";
+    clone.style.position = "";
+    return clone;
+}
+
 // ─── Export: SVG ──────────────────────────────────────────────────────────────
 
 document.getElementById("export-svg").addEventListener("click", () => {
-    const svg = preview.querySelector("svg");
+    const svg = getCleanSvg();
     if (!svg) return alert("Nothing to export — render a diagram first.");
     const data = new XMLSerializer().serializeToString(svg);
     download("diagram.svg", "image/svg+xml", data);
@@ -567,12 +811,12 @@ document.getElementById("export-svg").addEventListener("click", () => {
 // ─── Export: PNG ──────────────────────────────────────────────────────────────
 
 document.getElementById("export-png").addEventListener("click", () => {
-    const svg = preview.querySelector("svg");
+    const svg = getCleanSvg();
     if (!svg) return alert("Nothing to export — render a diagram first.");
 
     const data = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+    // Use a base64 data URL instead of blob URL to avoid tainted-canvas errors
+    const url = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data)));
     const img = new Image();
     img.onload = () => {
         const scale = 2; // retina
@@ -580,9 +824,10 @@ document.getElementById("export-png").addEventListener("click", () => {
         canvas.width = img.naturalWidth * scale;
         canvas.height = img.naturalHeight * scale;
         const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.scale(scale, scale);
         ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
         canvas.toBlob((pngBlob) => {
             const a = document.createElement("a");
             a.href = URL.createObjectURL(pngBlob);

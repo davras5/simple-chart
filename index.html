@@ -44,14 +44,83 @@
         </div>
         <div class="divider"></div>
         <div class="preview-pane">
-            <div class="pane-header">
-                <span>Preview</span>
-            </div>
             <div id="preview">
                 <div class="placeholder">Choose an example or start typing to see a live preview.</div>
             </div>
+
+            <!-- Top toolbar: direction + theme -->
+            <div class="floating-toolbar ft-top">
+                <div class="tb-dropdown">
+                    <button class="tb-dropdown-trigger" id="direction-btn" title="Direction">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                        <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="tb-dropdown-menu" id="direction-menu">
+                        <div class="tb-menu-title">Direction</div>
+                        <button data-value="" class="active">Auto</button>
+                        <button data-value="TD"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> Top to bottom</button>
+                        <button data-value="BT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> Bottom to top</button>
+                        <button data-value="LR"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Left to right</button>
+                        <button data-value="RL"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Right to left</button>
+                    </div>
+                </div>
+
+                <span class="tb-sep"></span>
+
+                <div class="tb-dropdown">
+                    <button class="tb-dropdown-trigger" id="layout-btn" title="Layout">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="20" r="2"/><line x1="12" y1="6" x2="6" y2="18"/><line x1="12" y1="6" x2="18" y2="18"/></svg>
+                        <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="tb-dropdown-menu" id="layout-menu">
+                        <div class="tb-menu-title">Layout</div>
+                        <button data-value="dagre" class="active"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="20" r="2"/><line x1="12" y1="6" x2="6" y2="18"/><line x1="12" y1="6" x2="18" y2="18"/></svg> Hierarchical</button>
+                        <button data-value="elk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="2"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="11" x2="17" y2="6"/><line x1="14" y1="13" x2="17" y2="18"/></svg> Adaptive</button>
+                    </div>
+                </div>
+
+                <span class="tb-sep"></span>
+
+                <div class="tb-dropdown">
+                    <button class="tb-dropdown-trigger" id="theme-btn" title="Theme">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.7C6.5 2.7 2 7.2 2 12.7s4.5 10 10 10c1 0 1.5-.5 1.5-1.2 0-.3-.1-.6-.4-.9-.2-.3-.4-.6-.4-1 0-1.1.9-2 2-2h2.3c3.3 0 6-2.7 6-6 0-5.5-4.5-9.8-11-9.8z"/><circle cx="8" cy="10" r="1.5" fill="currentColor"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="10" r="1.5" fill="currentColor"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/></svg>
+                        <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="tb-dropdown-menu" id="theme-menu">
+                        <div class="tb-menu-title">Theme</div>
+                        <button data-value="default" class="active">Default</button>
+                        <button data-value="neutral">Neutral</button>
+                        <button data-value="forest">Forest</button>
+                        <button data-value="dark">Dark</button>
+                        <button data-value="base">Base</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom toolbar: zoom -->
+            <div class="floating-toolbar ft-bottom">
+                <button id="zoom-out" title="Zoom out">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </button>
+                <button id="zoom-in" title="Zoom in">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </button>
+                <span class="tb-sep"></span>
+                <button id="zoom-reset" title="Fit to view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                </button>
+                <span id="zoom-level" class="tb-label">100%</span>
+            </div>
         </div>
     </main>
+
+    <footer>
+        <a href="https://github.com/davras5/simple-chart" target="_blank">Source Code</a>
+        <span>·</span>
+        <a href="https://github.com/mermaid-js/mermaid" target="_blank">Based on Mermaid JS</a>
+        <span>·</span>
+        <a href="https://mermaid.ai/docs/mermaid-oss/syntax/flowchart.html" target="_blank">Mermaid Docs</a>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script src="app.js"></script>

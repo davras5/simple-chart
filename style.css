@@ -26,6 +26,11 @@ html, body {
     color: #1e293b;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+}
+
 /* Header */
 
 header {
@@ -91,7 +96,7 @@ header h1 {
 
 main {
     display: flex;
-    height: calc(100vh - 56px);
+    flex: 1;
     overflow: hidden;
 }
 
@@ -123,6 +128,7 @@ main {
     flex-direction: column;
     background: var(--preview-bg);
     min-width: 300px;
+    position: relative;
 }
 
 /* Pane headers */
@@ -145,12 +151,6 @@ main {
     border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.preview-pane .pane-header {
-    background: var(--pane-header-bg);
-    color: var(--pane-header-text);
-    border-bottom: 1px solid var(--border);
-}
-
 .toggle-label {
     display: flex;
     align-items: center;
@@ -163,6 +163,145 @@ main {
 
 .toggle-label input[type="checkbox"] {
     accent-color: var(--primary);
+}
+
+/* Floating toolbar (shared) */
+
+.floating-toolbar {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    z-index: 10;
+}
+
+.ft-top {
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.ft-bottom {
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.floating-toolbar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #475569;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.1s;
+}
+
+.floating-toolbar button:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.floating-toolbar button.active {
+    background: #eff6ff;
+    color: var(--primary);
+}
+
+.tb-label {
+    font-size: 0.7rem;
+    color: #64748b;
+    min-width: 2.5rem;
+    text-align: center;
+    user-select: none;
+}
+
+.tb-sep {
+    width: 1px;
+    height: 20px;
+    background: #e2e8f0;
+    margin: 0 2px;
+    flex-shrink: 0;
+}
+
+/* Toolbar dropdowns */
+
+.tb-dropdown {
+    position: relative;
+}
+
+.tb-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.tb-dropdown-trigger .chevron {
+    opacity: 0.4;
+}
+
+.tb-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 160px;
+    padding: 4px;
+    z-index: 20;
+}
+
+.tb-dropdown-menu.open {
+    display: block;
+}
+
+.tb-menu-title {
+    padding: 6px 10px 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+
+.tb-dropdown-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: #334155;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: left;
+    height: auto;
+    justify-content: flex-start;
+}
+
+.tb-dropdown-menu button:hover {
+    background: #f1f5f9;
+}
+
+.tb-dropdown-menu button.active {
+    background: #eff6ff;
+    color: var(--primary);
+    font-weight: 500;
 }
 
 /* Editor textarea */
@@ -216,26 +355,37 @@ main {
 
 #preview {
     flex: 1;
-    overflow: auto;
-    padding: 2rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+}
+
+#preview.panning {
+    cursor: grabbing;
+    user-select: none;
 }
 
 #preview svg {
-    max-width: 100%;
-    height: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 #preview .placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     color: #94a3b8;
     font-size: 0.95rem;
     text-align: center;
-    margin-top: 4rem;
 }
 
 #preview .error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     color: var(--error);
     background: #fef2f2;
     border: 1px solid #fecaca;
@@ -246,6 +396,30 @@ main {
     max-width: 500px;
     white-space: pre-wrap;
     font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+}
+
+/* Footer */
+
+footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    background: var(--header-bg);
+    color: rgba(255,255,255,0.35);
+    font-size: 0.7rem;
+    flex-shrink: 0;
+}
+
+footer a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+}
+
+footer a:hover {
+    color: rgba(255,255,255,0.8);
+    text-decoration: underline;
 }
 
 /* Responsive */
@@ -265,7 +439,6 @@ main {
 
     main {
         flex-direction: column;
-        height: calc(100vh - 110px);
     }
 
     .editor-pane {
