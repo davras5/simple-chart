@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chart</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <h1>Simple Chart</h1>
+            <span class="subtitle">Free-text Mermaid diagrams</span>
+        </div>
+        <div class="toolbar">
+            <select id="templates">
+                <option value="">Load Example...</option>
+                <option value="er-german">ER: Gebäude & Räume</option>
+                <option value="er-basic">ER: Customers & Orders</option>
+                <option value="flow-german">Flow: Genehmigungsprozess</option>
+                <option value="flow-basic">Flow: Order Process</option>
+            </select>
+            <button id="export-svg" title="Download as SVG">Export SVG</button>
+            <button id="export-png" title="Download as PNG">Export PNG</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="editor-pane">
+            <div class="pane-header">
+                <span>Editor — attributes: Name, Type, PK, "Comment"</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="show-processed">
+                    <span>Show processed Mermaid</span>
+                </label>
+            </div>
+            <textarea id="editor" spellcheck="false" placeholder="Start typing your diagram or choose an example above..."></textarea>
+            <div id="processed-wrapper" class="hidden">
+                <div class="pane-header">
+                    <span>Processed Mermaid Code (sent to renderer)</span>
+                </div>
+                <pre id="processed-code"></pre>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div class="preview-pane">
+            <div class="pane-header">
+                <span>Preview</span>
+            </div>
+            <div id="preview">
+                <div class="placeholder">Choose an example or start typing to see a live preview.</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
